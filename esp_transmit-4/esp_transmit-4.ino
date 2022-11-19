@@ -83,6 +83,17 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
+
+  memcpy(peerInfo.peer_addr, broadcastAddress_3, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+
+
 }
 
 void loop() {
@@ -111,6 +122,7 @@ void loop() {
 
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
   esp_err_t result_2 = esp_now_send(broadcastAddress_2, (uint8_t *)&myData, sizeof(myData));
+  esp_err_t result_3 = esp_now_send(broadcastAddress_3, (uint8_t *)&myData, sizeof(myData));
   if (result == ESP_OK) {
 
     // Serial.printf("T%dS%d\n", throttle, steering);
