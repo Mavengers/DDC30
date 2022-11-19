@@ -1,7 +1,11 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
+<<<<<<< HEAD
 //#include "ESP32_C3_ISR_Servo.h"
+=======
+#include "ESP32_C3_ISR_Servo.h"
+>>>>>>> b788a231a87f010bbed330212c0ca04bb6268f10
 
 #define CH1_PIN 4  //接收机pwm输出CH1通道为，GPIO4
 #define CH2_PIN 5  //接收机pwm输出CH2通道为，GPIO5
