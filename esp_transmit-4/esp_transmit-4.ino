@@ -12,6 +12,7 @@
 int int_value;
 float float_value;
 String result = "";
+bool mode = false;
 
 int throttle_read = 0;
 int steering_read = 0;
@@ -27,6 +28,9 @@ int throttle = 0;
 int steering = 0;
 //bool recvData.b = true;
 
+const int PIN_MODE = 6;
+const int PIN_LED = 10;
+
 // uint8_t broadcastAddress[] = {0x7c, 0xdf, 0xa1, 0xc2, 0x1a, 0x14};
 // uint8_t broadcastAddress[] = {0x84, 0xf7, 0x03, 0xa8, 0x53, 0x8c};
 // uint8_t broadcastAddress[] = { 0x84, 0xF7, 0x03, 0xA9, 0x74, 0xB8, 0x60,0x55,0xF9,0xCC,0xEC,0xF4}; //60:55:F9:CC:EC:F4
@@ -34,9 +38,10 @@ uint8_t broadcastAddress[] = { 0xDC, 0x54, 0x75, 0x62, 0x38, 0x9C };  //DC:54:75
 // uint8_t broadcastAddress_2[] = { 0x84,0xF7, 0x03, 0xA9, 0x46, 0x40 };
 // uint8_t broadcastAddress_3[] = { 0x58,0xcf, 0x79, 0x04, 0x6f, 0x5c }; //58:cf:79:04:6f:5c
 
-typedef struct struct_message {
+struct struct_message {
   int throttle;  // 油门控制
   int steering;  // 方向控制
+  bool mode;     // 驾驶模式（手动／自动） 
 };
 
 struct_message myData;
@@ -58,6 +63,8 @@ float floatMap(float x, float in_min, float in_max, float out_min, float
 
 void setup() {
   Serial.begin(115200);
+  pinMode(PIN_MODE, INPUT_PULLUP);
+  pinMode(PIN_LED, OUTPUT);  
   WiFi.mode(WIFI_STA);
 
   if (esp_now_init() != ESP_OK) {
@@ -92,8 +99,6 @@ void setup() {
   //   Serial.println("Failed to add peer");
   //   return;
   // }
-
-
 }
 
 void loop() {
@@ -117,8 +122,12 @@ void loop() {
                                                                          // bool_value = !bool_value;
   // strcpy(myData.a, "welcome to the earth");
 
+  if(button(PIN_MODE)) mode = !mode;
+  digitalWrite(PIN_LED, mode ? HIGH : LOW);  
+
   myData.throttle = throttle_temp;
   myData.steering = steering_temp;
+  myData.mode = mode;
 
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
   // esp_err_t result_2 = esp_now_send(broadcastAddress_2, (uint8_t *)&myData, sizeof(myData));
@@ -126,18 +135,19 @@ void loop() {
   if (result == ESP_OK) {
 
     // Serial.printf("T%dS%d\n", throttle, steering);
-    
-    Serial.print("throttle: ");
-    Serial.println(throttle_read);
+
+    //Serial.print("throttle: ");
+    //Serial.println(throttle_read);
     // Serial.println(throttle);
-    Serial.print("steering: ");
-    Serial.println(steering_read);
+    //Serial.print("steering: ");
+    //Serial.println(steering_read);
     // Serial.println(steering);
-    
+
 
   } else {
-    Serial.println("Sending error");
+    // Serial.println("Sending error");
   }
+
   /*
   steering_val_joystick = steering.mapDeadzone(-100, 100, steering_deadzone);
   throttle_val_joystick = throttle.mapDeadzone(-100, 100, throttle_deadzone);
@@ -156,4 +166,64 @@ void loop() {
 
 
   delay(10);
+}
+
+bool ReadMode() {
+  bool ret = false;
+
+  static bool KeyPressed = false;
+  static bool State = false;
+  static int TimeCount = 0;
+  static int ClickCount = 0;
+
+  auto key = digitalRead(PIN_MODE);
+
+  if (KeyPressed) {
+    TimeCount++;
+    if (key == LOW) {
+      ClickCount++;
+    }
+  } else {
+    if (key == LOW) KeyPressed = true;
+  }
+
+  if (TimeCount > 9 && ClickCount > 5) {
+    State = true;
+    ret = true;    
+    Serial.println("mode: 1");
+  }
+
+  if (State && key == HIGH) {
+    KeyPressed = false;
+    State = false;
+    TimeCount = 0;
+    ClickCount = 0;    
+  }
+
+  return ret;
+}
+
+int button(int pin)
+{
+  static int state = 0;
+  static unsigned long last_time = 0;
+  unsigned long now = millis();
+  //如果按键按下，引脚电平变为低电平，否则为高电平。
+  int reading = digitalRead(pin);
+  if (reading == LOW) {
+    if (state == 0) {
+      //如果是刚按下，记录下按下的时间。
+      last_time = now;
+      state = 1;
+    } else if (now - last_time >= 50 && state != 2) {
+      //如果按键一直按下，且已经超过50ms，才返回1，否则返回0。
+      state = 2;
+      // Serial.println("mode: 1");
+      return 1;
+    }
+  } else {
+    //如果按键松开，状态复位。
+    state = 0;
+  }
+  return 0;
 }
