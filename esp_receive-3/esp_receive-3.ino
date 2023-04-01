@@ -1,11 +1,7 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-<<<<<<< HEAD
-//#include "ESP32_C3_ISR_Servo.h"
-=======
 #include "ESP32_C3_ISR_Servo.h"
->>>>>>> b788a231a87f010bbed330212c0ca04bb6268f10
 
 #define CH1_PIN 4  //接收机pwm输出CH1通道为，GPIO4
 #define CH2_PIN 5  //接收机pwm输出CH2通道为，GPIO5
@@ -24,16 +20,32 @@
 #define MIN_MICROS      1050 
 #define MAX_MICROS      1950
 
+const int ledPin = 10; // LED connected to GPIO10 on ESP32-C3
+
 
 // Define a data structure
 typedef struct struct_message {
   int throttle;
   int steering;
+  bool mode;
 } struct_message;
 
 
-int servo_throttle  = -1;
-int servo_steering  = -1;
+int User_throttle  = 0; //RC遥控器发来的用户油门值
+int User_steering  = 0; //RC遥控器发来的用户转向值
+int Pilot_throttle  = 0;//上位机发来的油门值
+int Pilot_steering  = 0;//上位机发来的转向值
+bool Drive_mode  = false;//驾驶模式，false为遥控模式，true为自动驾驶模式
+
+
+const int PWM_MIN = 819; // 'minimum' pulse length count (out of 4096)
+const int PWM_MAX = 1638; // 'maximum' pulse length count (out of 4096)
+const int MOTOR_MID = 1229; // 需要实际测试
+const int MOTOR_RANGE = 390; // Pulse range for Motor Throttle # change from 60 to 90 
+const int SERVO_MID = 1270; //  需要实际测试
+const int SERVO_RANGE = 390; // Pulse range for Motor Throttle # change from 60 to 90 
+const int MOTOR_OFFSET = 11;
+const int SERVO_OFFSET = -11;
 
 // Create a structure object
 struct_message* myData;
@@ -48,18 +60,10 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
   // ESP32_ISR_Servos.setPulseWidth(servo_throttle, map(myData->throttle, 0, 4096, MIN_MICROS, MAX_MICROS)); //myData.adc0
   // ESP32_ISR_Servos.setPulseWidth(servo_steering, map(myData->steering, 0, 4096, MIN_MICROS, MAX_MICROS));
 */
-  int t = myData->throttle;
-  int s = myData->steering;
+  User_throttle = myData->throttle; 
+  User_steering = myData->steering;
+  Drive_mode = myData->mode;
 
-  t = adj(t, 550);
-  s = adj(s, 800);
-  // t = adj(t, 0);
-  // s = adj(s, 0);
-
-  Serial.printf("%d, %d\n", t, s);
- 
-  ledcWrite(0, t / 2.5);
-  ledcWrite(1, s / 2.5);
 }
 
 int adj(int v, int s)
@@ -72,7 +76,9 @@ int adj(int v, int s)
 }
 
 void setup() {
+  pinMode(ledPin, OUTPUT);
 	Serial.begin(115200);
+  Serial1.begin(115200,SERIAL_8N1,/*rx =*/20,/*Tx =*/21); 
   // Serial.println("hello donkey");
 /*
   ESP32_ISR_Servos.useTimer(USE_ESP32_TIMER_NO);
@@ -102,5 +108,46 @@ void setup() {
 
 void loop() {
   //  Serial.print("STA MAC: "); Serial.println(WiFi.macAddress());
-   delay(1000);
+  int t = 0;
+  int s = 0;
+
+  if (Serial1.available()){
+      String CMD = Serial1.readStringUntil('\n');
+      String CMD_steering = CMD;
+      String CMD_throttle = CMD;
+
+      int CMD_gap = CMD.indexOf(':');
+      int CMD_len = CMD.length();
+
+      CMD_steering.remove(CMD_gap,-1);
+      CMD_throttle.remove(0,CMD_gap+1);
+    
+      Pilot_steering = CMD_steering.toInt();
+      Pilot_throttle = CMD_throttle.toInt();
+    }
+
+  if(Drive_mode) {
+    // Controlled by Pilot
+    digitalWrite(ledPin, HIGH);
+    t = Pilot_throttle;
+    s = Pilot_steering;
+  } else {
+    // Controlled by RC Controller
+    digitalWrite(ledPin, LOW);
+    t = User_throttle+MOTOR_OFFSET;
+    s = User_steering+SERVO_OFFSET;
+    Serial1.printf("T%dS%d\n", t, s);
+  }
+
+  int t1 = map(t,100,-100,MOTOR_MID-MOTOR_RANGE,MOTOR_MID+MOTOR_RANGE);
+  int s1 = map(s,100,-100,SERVO_MID-SERVO_RANGE,SERVO_MID+SERVO_RANGE);
+
+  t1 = min(max(t1,PWM_MIN),PWM_MAX);
+  s1 = min(max(s1,PWM_MIN),PWM_MAX);
+
+  Serial.printf("%d, %d\t%d, %d\n",t, t1 , s, s1);
+  ledcWrite(0, t1);
+  ledcWrite(1, s1);
+
+  delay(10);
 }
