@@ -97,6 +97,6 @@ void setup() {
 
 
 void loop() {
-   //Serial.print("STA MAC: "); Serial.println(WiFi.macAddress());
+  //  Serial.print("STA MAC: "); Serial.println(WiFi.macAddress());
    delay(1000);
 }

@@ -30,9 +30,9 @@ int steering = 0;
 // uint8_t broadcastAddress[] = {0x7c, 0xdf, 0xa1, 0xc2, 0x1a, 0x14};
 // uint8_t broadcastAddress[] = {0x84, 0xf7, 0x03, 0xa8, 0x53, 0x8c};
 // uint8_t broadcastAddress[] = { 0x84, 0xF7, 0x03, 0xA9, 0x74, 0xB8, 0x60,0x55,0xF9,0xCC,0xEC,0xF4}; //60:55:F9:CC:EC:F4
-uint8_t broadcastAddress[] = { 0x84, 0xF7, 0x03, 0xA9, 0x74, 0xB8 };  //60:55:F9:CC:EC:F4
-uint8_t broadcastAddress_2[] = { 0x84,0xF7, 0x03, 0xA9, 0x46, 0x40 };
-uint8_t broadcastAddress_3[] = { 0x58,0xcf, 0x79, 0x04, 0x6f, 0x5c }; //58:cf:79:04:6f:5c
+uint8_t broadcastAddress[] = { 0xDC, 0x54, 0x75, 0x62, 0x38, 0x9C };  //DC:54:75:62:38:9C
+// uint8_t broadcastAddress_2[] = { 0x84,0xF7, 0x03, 0xA9, 0x46, 0x40 };
+// uint8_t broadcastAddress_3[] = { 0x58,0xcf, 0x79, 0x04, 0x6f, 0x5c }; //58:cf:79:04:6f:5c
 
 typedef struct struct_message {
   int throttle;  // 油门控制
@@ -75,23 +75,23 @@ void setup() {
     return;
   }
 
-  memcpy(peerInfo.peer_addr, broadcastAddress_2, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
+  // memcpy(peerInfo.peer_addr, broadcastAddress_2, 6);
+  // peerInfo.channel = 0;
+  // peerInfo.encrypt = false;
 
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    return;
-  }
+  // if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+  //   Serial.println("Failed to add peer");
+  //   return;
+  // }
 
-  memcpy(peerInfo.peer_addr, broadcastAddress_3, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
+  // memcpy(peerInfo.peer_addr, broadcastAddress_3, 6);
+  // peerInfo.channel = 0;
+  // peerInfo.encrypt = false;
 
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    return;
-  }
+  // if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+  //   Serial.println("Failed to add peer");
+  //   return;
+  // }
 
 
 }
@@ -121,8 +121,8 @@ void loop() {
   myData.steering = steering_temp;
 
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
-  esp_err_t result_2 = esp_now_send(broadcastAddress_2, (uint8_t *)&myData, sizeof(myData));
-  esp_err_t result_3 = esp_now_send(broadcastAddress_3, (uint8_t *)&myData, sizeof(myData));
+  // esp_err_t result_2 = esp_now_send(broadcastAddress_2, (uint8_t *)&myData, sizeof(myData));
+  // esp_err_t result_3 = esp_now_send(broadcastAddress_3, (uint8_t *)&myData, sizeof(myData));
   if (result == ESP_OK) {
 
     // Serial.printf("T%dS%d\n", throttle, steering);
